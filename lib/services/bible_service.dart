@@ -10,11 +10,11 @@ class BibleService {
   }
 
   Future<void> insertBibleData(Map<String, dynamic> bibleData, String version) async {
-    final db = await DatabaseHelper().database;
+    final dbHelper = DatabaseHelper();
     for (var book in bibleData.keys) {
       for (var chapter in bibleData[book].keys) {
         for (var verse in bibleData[book][chapter]) {
-          await db.insert('verses', {
+          await dbHelper.insertVerse({
             'book': book,
             'chapter': chapter,
             'verse': verse['verse'],

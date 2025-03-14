@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'services/database_helper.dart';
 import 'services/bible_service.dart';
 import 'screens/loading_screen.dart'; // Import the LoadingScreen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is initialized
+
+  // Initialize Hive
+  await Hive.initFlutter();
+  await Hive.openBox('bibleBox'); // Open a Hive box for storing data
+
   final dbHelper = DatabaseHelper();
-  await dbHelper.database; // Initialize the database
+  await dbHelper.initialize(); // Initialize the database
 
   bool isLoading = true;
 
