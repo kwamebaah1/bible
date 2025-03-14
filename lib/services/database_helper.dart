@@ -8,6 +8,12 @@ class DatabaseHelper {
 
   DatabaseHelper._internal();
 
+  Future<bool> isDatabaseEmpty() async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM verses'));
+    return count == 0;
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();

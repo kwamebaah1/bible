@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
 import 'services/database_helper.dart';
+import 'services/bible_service.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await DatabaseHelper().database; // Initialize the database
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is initialized
+  final dbHelper = DatabaseHelper();
+  await dbHelper.database; // Initialize the database
+
+  // Check if the database is empty
+  if (await dbHelper.isDatabaseEmpty()) {
+    final bibleService = BibleService();
+    
+    // Load and insert NIV data
+    Map<String, dynamic> nivData = await bibleService.loadBible("niv");
+    await bibleService.insertBibleData(nivData, "niv");
+
+    // Load and insert KJV data
+    Map<String, dynamic> kjvData = await bibleService.loadBible("kjv");
+    await bibleService.insertBibleData(kjvData, "kjv");
+
+    print("Data inserted successfully!");
+  }
+
   runApp(const MyApp());
 }
 
