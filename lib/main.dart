@@ -66,11 +66,20 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<String> _books = [];
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    _loadBooks();
+  }
+
+  Future<void> _loadBooks() async {
+    final verses = await _dbHelper.getVerses();
+    final books = verses.map((verse) => verse['book'] as String).toSet().toList();
     setState(() {
-      _counter++;
+      _books = books;
     });
   }
 
@@ -81,23 +90,172 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      body: _books.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: _books.length,
+              itemBuilder: (context, index) {
+                final book = _books[index];
+                return ListTile(
+                  leading: const Icon(Icons.book, color: Colors.deepPurple),
+                  title: Text(
+                    book,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  onTap: () {
+                    // Navigate to the chapters screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChaptersScreen(book: book),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-          ],
-        ),
+    );
+  }
+}
+
+class ChaptersScreen extends StatefulWidget {
+  final String book;
+
+  const ChaptersScreen({super.key, required this.book});
+
+  @override
+  State<ChaptersScreen> createState() => _ChaptersScreenState();
+}
+
+class _ChaptersScreenState extends State<ChaptersScreen> {
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<int> _chapters = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChapters();
+  }
+
+  Future<void> _loadChapters() async {
+    final verses = await _dbHelper.getVerses();
+    final chapters = verses
+        .where((verse) => verse['book'] == widget.book)
+        .map((verse) => verse['chapter'] as int)
+        .toSet()
+        .toList();
+    setState(() {
+      _chapters = chapters..sort();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.book),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      body: _chapters.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 5, // Number of columns
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: _chapters.length,
+              itemBuilder: (context, index) {
+                final chapter = _chapters[index];
+                return Card(
+                  elevation: 3,
+                  child: InkWell(
+                    onTap: () {
+                      // Navigate to the verses screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VersesScreen(
+                            book: widget.book,
+                            chapter: chapter,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Center(
+                      child: Text(
+                        chapter.toString(),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+class VersesScreen extends StatefulWidget {
+  final String book;
+  final int chapter;
+
+  const VersesScreen({super.key, required this.book, required this.chapter});
+
+  @override
+  State<VersesScreen> createState() => _VersesScreenState();
+}
+
+class _VersesScreenState extends State<VersesScreen> {
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<Map<String, dynamic>> _verses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVerses();
+  }
+
+  Future<void> _loadVerses() async {
+    final verses = await _dbHelper.getVerses();
+    final filteredVerses = verses
+        .where((verse) =>
+            verse['book'] == widget.book && verse['chapter'] == widget.chapter)
+        .toList();
+    setState(() {
+      _verses = filteredVerses;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.book} ${widget.chapter}'),
       ),
+      body: _verses.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _verses.length,
+              itemBuilder: (context, index) {
+                final verse = _verses[index];
+                return Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    title: Text(
+                      'Verse ${verse['verse']}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    subtitle: Text(
+                      verse['text'],
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
